@@ -1,0 +1,244 @@
+# =====================================================================
+#  DESARROLLO MATEMÁTICO DE LAS FUNCIONES DEL PAQUETE distOwn
+#  De la fórmula al código, paso a paso
+#  Distribución: f(x) = 1 + sin(2*pi*x),  0 < x < 1
+# =====================================================================
+# Este script NO usa el paquete: construye cada función desde la
+# matemática y comprueba que funciona. Es el "borrador" del paquete.
+# Ejecútalo por partes con Ctrl + Enter.
+
+
+# =====================================================================
+# PASO 1. FUNCIÓN DE DENSIDAD  f(x)         ->  dOwn()
+# =====================================================================
+# Matemática:
+#            | 1 + sin(2*pi*x)   si 0 < x < 1
+#   f(x) =   |
+#            | 0                 en otro caso
+#
+# En R, ifelse(condición, valor_si, valor_no) traduce la "llave" por partes.
+
+dOwn <- function(x) {
+  ifelse(x > 0 & x < 1, 1 + sin(2 * pi * x), 0)
+}
+
+# Comprobación con la tabla de valores:
+#   x = 0.25 -> sin(pi/2)   =  1 -> f = 2   (máximo)
+#   x = 0.50 -> sin(pi)     =  0 -> f = 1
+#   x = 0.75 -> sin(3*pi/2) = -1 -> f = 0   (mínimo)
+dOwn(c(0.25, 0.5, 0.75))      # 2 1 0
+dOwn(c(-0.5, 1.5))            # 0 0  (fuera del soporte)
+
+curve(dOwn(x), from = 0.0001, to = 0.9999, lwd = 2, col = "red",
+      main = "f(x) = 1 + sin(2*pi*x)", ylab = "f(x)")
+
+
+# =====================================================================
+# PASO 2. VERIFICAR QUE ES UNA DENSIDAD VÁLIDA
+# =====================================================================
+# Condición 1: f(x) >= 0
+#   -1 <= sin(2*pi*x) <= 1   =>   0 <= 1 + sin(2*pi*x) <= 2
+x_prueba <- seq(-1, 2, by = 0.001)
+all(dOwn(x_prueba) >= 0)      # TRUE
+range(dOwn(x_prueba))         # 0 2  -> recorrido [0, 2]
+
+# Condición 2: área total = 1
+#   ∫0^1 [1 + sin(2*pi*x)] dx = [x - cos(2*pi*x)/(2*pi)] de 0 a 1
+#                             = (1 - 1/(2*pi)) - (0 - 1/(2*pi)) = 1
+integrate(dOwn, 0, 1)         # 1
+
+
+# =====================================================================
+# PASO 3. FUNCIÓN DE DISTRIBUCIÓN ACUMULADA  F(x)   ->  pOwn()
+# =====================================================================
+# Matemática (integrando f de 0 a x):
+#   F(x) = ∫0^x [1 + sin(2*pi*t)] dt
+#        = [t - cos(2*pi*t)/(2*pi)] de 0 a x
+#        = x - cos(2*pi*x)/(2*pi) + 1/(2*pi)
+#        = x + (1 - cos(2*pi*x)) / (2*pi)
+#
+# Por partes:  F(x) = 0 si x <= 0;  la fórmula si 0 < x < 1;  1 si x >= 1
+
+pOwn <- function(q) {
+  ifelse(q <= 0, 0,
+         ifelse(q >= 1, 1,
+                q + (1 - cos(2 * pi * q)) / (2 * pi)))
+}
+
+# Comprobaciones:
+pOwn(c(0, 1))                          # 0 1   -> F(0) = 0, F(1) = 1
+pOwn(0.4)                              # fórmula
+integrate(dOwn, 0, 0.4)$value          # integral numérica: deben coincidir
+all(diff(pOwn(seq(0, 1, 0.01))) > 0)   # TRUE -> estrictamente creciente
+
+# Probabilidades teóricas:  P(a < X <= b) = F(b) - F(a)
+pOwn(0.25)                    # 0.4092  = 0.25 + 1/(2*pi)
+pOwn(0.5)                     # 0.8183  = 0.5  + 2/(2*pi)
+pOwn(0.75) - pOwn(0.5)        # 0.0908
+
+curve(pOwn(x), 0, 1, lwd = 2, col = "blue", main = "F(x)", ylab = "F(x)")
+
+
+# =====================================================================
+# PASO 4. MEDIDAS TEÓRICAS (POBLACIONALES)   ->  momentosOwn()
+# =====================================================================
+# Media (por partes):  E(X) = ∫0^1 x*f(x) dx = 1/2 - 1/(2*pi)
+# E(X^2)              = ∫0^1 x^2*f(x) dx = 1/3 - 1/(2*pi)
+# Varianza:  Var(X) = E(X^2) - E(X)^2 = 1/12 - 1/(4*pi^2)
+
+media_formula    <- 1/2 - 1/(2 * pi)
+varianza_formula <- 1/12 - 1/(4 * pi^2)
+
+# Comprobación con integración numérica:
+e1 <- integrate(function(x) x   * dOwn(x), 0, 1)$value
+e2 <- integrate(function(x) x^2 * dOwn(x), 0, 1)$value
+c(formula = media_formula,    numerica = e1)          # 0.3408 0.3408
+c(formula = varianza_formula, numerica = e2 - e1^2)   # 0.0580 0.0580
+
+
+# =====================================================================
+# PASO 5. ¿POR QUÉ NO SE PUEDE DESPEJAR F(x) = U?
+# =====================================================================
+# Ejemplo U = 0.65:
+#   x + (1 - cos(2*pi*x))/(2*pi) = 0.65
+#   2*pi*x + 1 - cos(2*pi*x)     = 1.3*pi        (multiplicar por 2*pi)
+#   2*pi*x - cos(2*pi*x)         = 1.3*pi - 1    (restar 1)
+#   theta - cos(theta)           = 3.08407       (theta = 2*pi*x)
+# x aparece fuera y dentro del coseno -> ecuación TRASCENDENTE.
+# No hay despeje algebraico: se resuelve con un método numérico.
+1.3 * pi - 1                  # 3.08407
+
+
+# =====================================================================
+# PASO 6. MÉTODO DE BISECCIÓN A MANO (para entender uniroot)
+# =====================================================================
+# g(x) = F(x) - U.  Buscamos g(x) = 0.
+# Bolzano: g(0) = -U < 0 y g(1) = 1 - U > 0 -> hay una raíz en [0, 1].
+
+biseccion <- function(U, a = 0, b = 1, iter = 9) {
+  g <- function(x) pOwn(x) - U
+  for (k in 1:iter) {
+    c_medio <- (a + b) / 2                    # punto medio
+    cat(sprintf("Iter %d: [%.5f, %.5f]  c = %.5f  g(c) = %+.5f\n",
+                k, a, b, c_medio, g(c_medio)))
+    if (g(c_medio) > 0) b <- c_medio else a <- c_medio   # mitad con cambio de signo
+  }
+  c_medio                                     # último punto medio = raíz aprox.
+}
+
+x_bis <- biseccion(0.65)      # tabla de iteraciones del informe
+x_bis                         # aprox. 0.3769
+pOwn(x_bis)                   # aprox. 0.65  -> comprobación
+
+
+# =====================================================================
+# PASO 7. FUNCIÓN CUANTIL  F^-1(p)  CON uniroot   ->  qOwn()
+# =====================================================================
+# uniroot() hace lo mismo que la bisección, pero con el método de Brent
+# (más rápido). Resuelve g(x) = F(x) - p = 0 en el intervalo [0, 1].
+# sapply() lo aplica a cada probabilidad, porque uniroot resuelve una
+# ecuación a la vez.
+
+qOwn <- function(p, tol = 1e-10) {
+  if (any(p < 0 | p > 1, na.rm = TRUE)) stop("p debe estar entre 0 y 1")
+  sapply(p, function(pi_) {
+    if (is.na(pi_)) return(NA_real_)
+    if (pi_ == 0) return(0)                       # F^-1(0) = 0
+    if (pi_ == 1) return(1)                       # F^-1(1) = 1
+    uniroot(function(x) pOwn(x) - pi_,            # g(x) = F(x) - p
+            interval = c(0, 1), tol = tol)$root   # la raíz es x
+  })
+}
+
+qOwn(0.65)                    # 0.37694 (igual que la bisección)
+pOwn(qOwn(0.65))              # 0.65    -> qOwn es la inversa de pOwn
+qOwn(c(0.25, 0.5, 0.75))      # Q1, mediana, Q3 teóricos
+
+
+# =====================================================================
+# PASO 8. GENERADOR: TRANSFORMADA INVERSA   ->  rOwn()
+# =====================================================================
+# Teorema: si U ~ U(0,1), entonces X = F^-1(U) tiene distribución F.
+#   P(X <= x) = P(F^-1(U) <= x) = P(U <= F(x)) = F(x)
+# Algoritmo:  Paso 1: generar U.   Paso 2: X = F^-1(U) = qOwn(U).
+
+rOwn <- function(n) {
+  if (length(n) != 1 || n < 1) stop("n debe ser un entero positivo")
+  u <- runif(n)          # Paso 1: U ~ Uniforme(0,1)
+  qOwn(u)                # Paso 2: X = F^-1(U)
+}
+
+set.seed(123)            # semilla: resultados reproducibles
+datos <- rOwn(1000)
+head(datos)
+range(datos)             # todos dentro de (0, 1)
+
+
+# =====================================================================
+# PASO 9. TEÓRICO vs MUESTRAL   ->  compararOwn()
+# =====================================================================
+# Teórico: sale de las fórmulas (fijo).  Muestral: sale de los datos.
+data.frame(
+  Medida   = c("Media", "Varianza", "Mediana"),
+  Teorico  = c(media_formula, varianza_formula, qOwn(0.5)),
+  Muestral = c(mean(datos), var(datos), median(datos))
+)
+
+# Probabilidad teórica F(b) - F(a) vs proporción de datos en el intervalo
+cortes <- c(0, 0.25, 0.5, 0.75, 1)
+data.frame(
+  Intervalo = c("(0,0.25]", "(0.25,0.5]", "(0.5,0.75]", "(0.75,1)"),
+  Teorica   = diff(pOwn(cortes)),
+  Muestral  = as.vector(table(cut(datos, cortes, include.lowest = TRUE))) / 1000
+)
+
+
+# =====================================================================
+# PASO 10. HISTOGRAMA vs DENSIDAD TEÓRICA   ->  plotOwn()
+# =====================================================================
+# freq = FALSE: barras en escala de densidad (área total = 1),
+# así se pueden comparar con la curva f(x).
+hist(datos, freq = FALSE, breaks = 30, col = "lightblue", border = "white",
+     xlim = c(0, 1), ylim = c(0, 2.2),
+     main = "Histograma de la muestra vs densidad teórica", xlab = "x")
+curve(dOwn(x), from = 0.0001, to = 0.9999, add = TRUE, col = "red", lwd = 2)
+
+
+# =====================================================================
+# PASO 11. PRUEBAS DE BONDAD DE AJUSTE   ->  gofOwn()
+# =====================================================================
+# H0: los datos provienen de f(x) = 1 + sin(2*pi*x)
+# H1: no provienen de esa distribución        alpha = 0.05
+
+# --- Kolmogorov-Smirnov:  D = sup |Fn(x) - F(x)|
+ks.test(datos, pOwn)                 # D = 0.0141, p-valor = 0.989
+1.36 / sqrt(1000)                    # valor crítico aprox. 0.043
+
+# --- Chi-cuadrado con k = 10 clases equiprobables
+k     <- 10
+lim   <- qOwn(seq(0, 1, length.out = k + 1))     # límites = cuantiles teóricos
+O     <- as.vector(table(cut(datos, lim, include.lowest = TRUE)))  # observadas
+E     <- rep(1000 / k, k)                        # esperadas = 100
+chi2  <- sum((O - E)^2 / E)                      # estadístico
+gl    <- k - 1                                   # no se estiman parámetros
+p_chi <- pchisq(chi2, df = gl, lower.tail = FALSE)
+c(chi2 = chi2, gl = gl, critico = qchisq(0.95, gl), p_valor = p_chi)
+# chi2 = 1.92 < 16.92 y p = 0.993 > 0.05  ->  No se rechaza H0
+
+# Control: con datos que NO son de f (uniformes) la prueba sí rechaza
+ks.test(runif(1000), pOwn)$p.value               # < 0.05
+
+
+# =====================================================================
+# RESUMEN: de la matemática a las funciones del paquete
+# =====================================================================
+#   f(x)                       -> dOwn()
+#   F(x)                       -> pOwn()
+#   F^-1(p) con uniroot        -> qOwn()
+#   X = F^-1(U)                -> rOwn()
+#   E(X), Var(X)               -> momentosOwn()
+#   teórico vs muestral        -> compararOwn()
+#   histograma vs f(x)         -> plotOwn()
+#   K-S y Chi-cuadrado         -> gofOwn()
+# Estas mismas funciones, con documentación (#'), van en la carpeta R/
+# del paquete.

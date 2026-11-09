@@ -1,0 +1,42 @@
+#' @title Histogram vs Theoretical Density of the Own Distribution
+#'
+#' @description
+#' Draws the histogram of a sample on the density scale and overlays the
+#' theoretical density of the Own distribution, to check the fit visually.
+#'
+#' @param x A numeric vector with the sample.
+#' @param breaks Number of histogram classes. Default 30.
+#' @param main Plot title.
+#' @param col Bar color. Default \code{"lightblue"}.
+#' @param ... Other arguments passed to \code{hist()}.
+#'
+#' @return No value; it produces a plot.
+#'
+#' @details
+#' The histogram uses \code{freq = FALSE}, so the height of each bar is
+#'
+#' \deqn{\frac{\text{frequency}}{n \times \text{width}}}{frequency / (n * width)}
+#'
+#' and the total area of the bars is 1, as the area under
+#' \eqn{f(x) = 1 + \sin(2\pi x)}{f(x) = 1 + sin(2*pi*x)}. This makes the bars
+#' (sample) and the red curve (theory) comparable.
+#'
+#' @examples
+#' set.seed(123)
+#' x <- rOwn(1000)
+#' plotOwn(x)
+#'
+#' @export
+plotOwn <- function(x, breaks = 30,
+                    main = "Sample histogram vs theoretical density",
+                    col = "lightblue", ...){
+  graphics::hist(x, freq = FALSE, breaks = breaks, col = col, border = "white",
+                 xlim = c(0, 1), ylim = c(0, 2.2), main = main,
+                 xlab = "x", ylab = "Density", ...)
+  graphics::curve(dOwn(x), from = 1e-6, to = 1 - 1e-6, n = 501, add = TRUE,
+                  col = "red", lwd = 2)
+  graphics::legend(0.62, 2.15, legend = c("Sample", "Theoretical f(x)"),
+                   fill = c(col, NA), border = c("black", NA),
+                   lty = c(NA, 1), col = c(NA, "red"), lwd = c(NA, 2), bty = "n")
+  invisible(NULL)
+}

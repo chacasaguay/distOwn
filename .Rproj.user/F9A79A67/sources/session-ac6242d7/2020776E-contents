@@ -1,0 +1,37 @@
+#' @title Random Number Generation for the Own Distribution
+#'
+#' @description
+#' Generates random numbers from the Own continuous distribution using the
+#' inverse transform method with a numerical solution.
+#'
+#' @param n Number of observations to generate (a positive integer).
+#'
+#' @return A numeric vector of length \code{n} with values in (0, 1).
+#'
+#' @details
+#' Inverse transform theorem: if \eqn{U \sim U(0,1)}{U ~ U(0,1)}, then
+#'
+#' \deqn{X = F^{-1}(U)}{X = F^-1(U)}
+#'
+#' has distribution \eqn{F}, because
+#' \eqn{P(X \le x) = P(U \le F(x)) = F(x)}{P(X <= x) = P(U <= F(x)) = F(x)}.
+#'
+#' Algorithm:
+#' \enumerate{
+#'   \item Generate \eqn{U \sim U(0,1)}{U ~ U(0,1)} with \code{runif()}.
+#'   \item Solve \eqn{F(x) = U} numerically with \code{qOwn()}.
+#'   \item The solution \eqn{x} is an observation of the Own distribution.
+#' }
+#'
+#' @examples
+#' set.seed(123)
+#' x <- rOwn(1000)
+#' mean(x)
+#' hist(x, freq = FALSE)
+#'
+#' @export
+rOwn <- function(n){
+  if (length(n) != 1 || n < 1) stop("n must be a positive integer")
+  u <- stats::runif(n)   # Step 1: U ~ Uniform(0,1)
+  qOwn(u)                # Step 2: X = F^-1(U)
+}

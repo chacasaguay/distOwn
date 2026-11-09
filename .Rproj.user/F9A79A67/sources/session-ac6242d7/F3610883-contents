@@ -1,0 +1,72 @@
+#' @title Theoretical vs Sample Comparison for the Own Distribution
+#'
+#' @description
+#' Compares the theoretical (population) values of the Own distribution
+#' with the values computed from a sample: summary measures and
+#' probabilities by interval.
+#'
+#' @param x A numeric vector with the sample.
+#' @param cuts A numeric vector with the interval limits used to compare
+#' probabilities. Default \code{c(0, 0.25, 0.5, 0.75, 1)}.
+#'
+#' @return An object of class \code{compararOwn}: a list with \code{n},
+#' the table \code{measures} and the table \code{probabilities}.
+#'
+#' @details
+#' Theoretical values come from \eqn{f} and \eqn{F}; sample values come
+#' from the data. For each interval:
+#'
+#' \deqn{P_{theoretical}(a < X \le b) = F(b) - F(a)}{Theoretical P(a < X <= b) = F(b) - F(a)}
+#'
+#' \deqn{P_{sample}(a < X \le b) = \frac{\#\{a < x_i \le b\}}{n}}{Sample P(a < X <= b) = (number of x_i in (a, b]) / n}
+#'
+#' Theoretical values are fixed; sample values change with every sample.
+#'
+#' @examples
+#' set.seed(123)
+#' x <- rOwn(1000)
+#' compararOwn(x)
+#'
+#' @export
+compararOwn <- function(x, cuts = c(0, 0.25, 0.5, 0.75, 1)){
+  x <- x[!is.na(x)]
+  if (length(x) < 2) stop("x must have at least 2 observations")
+  m <- momentosOwn()
+  measures <- data.frame(
+    Measure     = c("Mean", "Variance", "Std. deviation", "Q1", "Median", "Q3"),
+    Theoretical = c(m$mean, m$variance, m$sd, qOwn(0.25), m$median, qOwn(0.75)),
+    Sample      = c(mean(x), stats::var(x), stats::sd(x),
+                    unname(stats::quantile(x, 0.25)), stats::median(x),
+                    unname(stats::quantile(x, 0.75)))
+  )
+  measures$Difference <- measures$Sample - measures$Theoretical
+  k <- length(cuts) - 1
+  labels <- sprintf("P(%.2f < X <= %.2f)", cuts[-(k + 1)], cuts[-1])
+  p_theo <- pOwn(cuts[-1]) - pOwn(cuts[-(k + 1)])
+  p_samp <- as.vector(table(cut(x, breaks = cuts, include.lowest = TRUE))) / length(x)
+  probabilities <- data.frame(Interval = labels, Theoretical = p_theo,
+                              Sample = p_samp, Difference = p_samp - p_theo)
+  res <- list(n = length(x), measures = measures, probabilities = probabilities)
+  class(res) <- "compararOwn"
+  res
+}
+
+#' @title Print Method for compararOwn Objects
+#'
+#' @description Prints the theoretical vs sample comparison in a readable way.
+#'
+#' @param x An object of class \code{compararOwn}.
+#' @param ... Not used.
+#'
+#' @return The object \code{x}, invisibly.
+#'
+#' @export
+print.compararOwn <- function(x, ...){
+  cat(sprintf("\nTheoretical (population) vs sample comparison   n = %d\n\n", x$n))
+  cat("Summary measures:\n")
+  print(x$measures, digits = 4, row.names = FALSE)
+  cat("\nProbabilities by interval:\n")
+  print(x$probabilities, digits = 4, row.names = FALSE)
+  cat("\n")
+  invisible(x)
+}

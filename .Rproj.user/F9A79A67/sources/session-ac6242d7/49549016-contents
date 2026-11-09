@@ -1,0 +1,41 @@
+#' @title Quantile Function of the Own Distribution
+#'
+#' @description
+#' Computes the quantile function (inverse CDF) of the Own continuous
+#' distribution, that is, the value \eqn{x} such that \eqn{F(x) = p}.
+#'
+#' @param p A numeric value or vector of probabilities between 0 and 1.
+#' @param tol Numeric tolerance used by \code{uniroot()}. Default \code{1e-10}.
+#'
+#' @return A numeric vector with the corresponding quantiles between 0 and 1.
+#'
+#' @details
+#' The equation \eqn{F(x) = p} has no algebraic solution. For example,
+#' with \eqn{p = 0.65} and \eqn{\theta = 2\pi x}{theta = 2*pi*x} it becomes
+#'
+#' \deqn{\theta - \cos\theta = 1.3\pi - 1}{theta - cos(theta) = 1.3*pi - 1}
+#'
+#' which is a transcendental equation. Therefore, the root of
+#'
+#' \deqn{g(x) = F(x) - p = 0}{g(x) = F(x) - p = 0}
+#'
+#' is found numerically with \code{uniroot()} on the interval from 0 to 1.
+#' The root exists and is unique because \eqn{g(0) < 0}, \eqn{g(1) > 0}
+#' and \eqn{g} is strictly increasing.
+#'
+#' @examples
+#' qOwn(0.65)
+#' pOwn(qOwn(0.65))
+#' qOwn(c(0.25, 0.5, 0.75))
+#'
+#' @export
+qOwn <- function(p, tol = 1e-10){
+  if (any(p < 0 | p > 1, na.rm = TRUE)) stop("p must be between 0 and 1")
+  sapply(p, function(pi_){
+    if (is.na(pi_)) return(NA_real_)
+    if (pi_ == 0) return(0)
+    if (pi_ == 1) return(1)
+    stats::uniroot(function(x) pOwn(x) - pi_,
+                   interval = c(0, 1), tol = tol)$root
+  })
+}

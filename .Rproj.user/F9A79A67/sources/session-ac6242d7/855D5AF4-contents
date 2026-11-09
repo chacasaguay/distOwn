@@ -1,0 +1,30 @@
+#' @title Theoretical Moments of the Own Distribution
+#'
+#' @description
+#' Returns the theoretical (population) mean, variance, standard deviation
+#' and median of the Own continuous distribution.
+#'
+#' @return A list with the elements \code{mean}, \code{variance},
+#' \code{sd} and \code{median}.
+#'
+#' @details
+#' The moments are obtained by integration by parts:
+#'
+#' \deqn{E(X) = \int_0^1 x\,f(x)\,dx = \frac{1}{2} - \frac{1}{2\pi} \approx 0.3408}{E(X) = 1/2 - 1/(2*pi) = 0.3408}
+#'
+#' \deqn{E(X^2) = \frac{1}{3} - \frac{1}{2\pi}}{E(X^2) = 1/3 - 1/(2*pi)}
+#'
+#' \deqn{Var(X) = E(X^2) - E(X)^2 = \frac{1}{12} - \frac{1}{4\pi^2} \approx 0.0580}{Var(X) = 1/12 - 1/(4*pi^2) = 0.0580}
+#'
+#' The median is \eqn{F^{-1}(0.5)}{F^-1(0.5)}, computed with \code{qOwn(0.5)}.
+#'
+#' @examples
+#' momentosOwn()
+#'
+#' @export
+momentosOwn <- function(){
+  mean_x <- 1/2 - 1/(2 * pi)
+  var_x  <- 1/12 - 1/(4 * pi^2)
+  list(mean = mean_x, variance = var_x, sd = sqrt(var_x),
+       median = qOwn(0.5))
+}
